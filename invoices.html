@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Store POS Invoice</title>
+<style>
+:root{--bg:#e8e4df;--card:#fff;--tx:#1a1a1a;--mut:#6b7280;--bd:#d1d5db;--pri:#1c3a5f;--ok:#166534;--hd:#f3f4f6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--card:#1c2027;--tx:#e8eaed;--mut:#9aa0a8;--bd:#3a414b;--pri:#5b8fd1;--ok:#3fa05f;--hd:#262b33;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111418;--card:#1c2027;--tx:#e8eaed;--mut:#9aa0a8;--bd:#3a414b;--pri:#5b8fd1;--ok:#3fa05f;--hd:#262b33;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:20px 14px;min-height:100vh}
+.wrap{max-width:760px;margin:0 auto;background:var(--card);padding:24px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:1.4rem;color:var(--pri)}
+.sub{color:var(--mut);font-size:.85rem;margin-bottom:6px}
+h2{font-size:1rem;color:var(--pri);margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--bd)}
+label{display:block;font-size:.78rem;font-weight:600;margin-bottom:3px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--bd);border-radius:6px;font:inherit;font-size:.92rem;background:var(--card);color:var(--tx)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--pri);outline-offset:0}
+.row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+button{padding:9px 15px;border:0;border-radius:6px;font-weight:600;font-size:.88rem;cursor:pointer;color:#fff;background:var(--pri)}
+.b2{background:var(--hd);color:var(--tx);border:1px solid var(--bd)}.bok{background:var(--ok)}.bd{background:#b91c1c;padding:4px 9px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:8px}
+th{background:var(--hd);text-align:left;padding:8px;white-space:nowrap}td{padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.r{text-align:right}.empty{text-align:center;color:var(--mut);padding:16px}
+.tot{margin-top:10px;margin-left:auto;max-width:280px;font-size:.92rem}
+.tot div{display:flex;justify-content:space-between;padding:3px 0;align-items:center}
+.tot .grand{font-size:1.15rem;font-weight:700;border-top:2px solid var(--bd);margin-top:4px;padding-top:6px}
+.tot input{width:90px;text-align:right;padding:4px 8px}
+.bar{margin-top:18px;padding:12px 14px;background:var(--hd);border-radius:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;font-size:.88rem}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:center;justify-content:center;padding:14px}
+.ov.show{display:flex}
+.md{background:var(--card);border-radius:12px;width:100%;max-width:820px;max-height:88vh;overflow:auto;padding:20px}
+.logoprev{max-height:60px;max-width:160px;display:block;margin-top:6px}
+#invoicePage{display:none}
+.receipt{max-width:380px;margin:0 auto;padding:24px 20px;background:#fff;color:#111;border:1px solid #ddd;font-family:"Courier New",monospace;font-size:13px;line-height:1.45}
+.receipt .c{text-align:center}.receipt .brand{font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.receipt img{max-height:64px;max-width:200px;margin-bottom:6px}
+.dash{border:0;border-top:1.5px dashed #333;margin:12px 0}
+.ri{display:flex;justify-content:space-between;gap:8px;margin:6px 0}.ri .n{flex:1;word-break:break-word}
+.rt{display:flex;justify-content:space-between;margin:2px 0}.rt.g2{font-size:1.1rem;font-weight:700}
+.acts{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ok);color:#fff;padding:11px 18px;border-radius:8px;opacity:0;transition:.25s;z-index:99;pointer-events:none}
+.toast.show{transform:translateX(-50%);opacity:1}
+@media(max-width:560px){.g{grid-template-columns:1fr}.wrap{padding:16px}}
+@media print{body{background:#fff;padding:0}.wrap{box-shadow:none;padding:0;max-width:none;background:#fff}.acts,.toast{display:none!important}.receipt{border:0;max-width:100%}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- Settings -->
+<div class="ov" id="setOv" onclick="if(event.target===this)closeSet()"><div class="md">
+<h2 style="margin-top:0">Store Settings</h2>
+<p class="sub">Set up once. Saved in this browser, so each store keeps its own details.</p>
+<div class="g">
+<div><label>Store name</label><input id="sName"></div>
+<div><label>Store phone</label><input id="sTel"></div>
+<div class="full"><label>Address</label><input id="sAddr"></div>
+<div><label>Currency symbol</label><input id="sCur" maxlength="5" placeholder="$ ៛ € ฿"></div>
+<div><label>Tax / VAT (%)</label><input id="sTax" type="number" min="0" step="0.01"></div>
+<div><label>Invoice prefix</label><input id="sPre" maxlength="8"></div>
+<div><label>Default cashier</label><input id="sCash"></div>
+<div class="full"><label>Receipt footer message</label><textarea id="sFoot" rows="2"></textarea></div>
+<div class="full"><label>Logo (optional)</label><input id="sLogo" type="file" accept="image/*"><img id="logoPrev" class="logoprev" alt="" style="display:none"><button type="button" class="b2" id="logoClr" style="display:none;margin-top:6px" onclick="clearLogo()">Remove logo</button></div>
+<div class="full"><label>Theme</label><select id="sTheme"><option value="">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+</div>
+<div class="acts"><button class="bok" onclick="saveSet()">Save</button><button class="b2" onclick="closeSet()">Cancel</button></div>
+</div></div>
+
+<!-- End of day -->
+<div class="ov" id="hisOv" onclick="if(event.target===this)closeHis()"><div class="md">
+<div class="top"><h2 style="margin:0;border:0">End of Day</h2><button class="b2" onclick="closeHis()">Close</button></div>
+<p class="sub" id="hisSum"></p>
+<div class="row" style="margin:8px 0"><div><label>Show date</label><input type="date" id="hisDate" onchange="renderHis()"></div><button class="b2" onclick="$('hisDate').value='';renderHis()">All dates</button></div>
+<div class="tw"><table><thead><tr><th>Date</th><th>Time</th><th>Invoice</th><th>Customer</th><th>Items</th><th class="r">Qty</th><th class="r">Total</th><th>Pay</th><th>Cashier</th></tr></thead><tbody id="hisBody"></tbody></table></div>
+<div class="acts"><button class="bok" onclick="exportX()">Export .xlsx</button><button class="b2" onclick="exportC()">CSV</button><button class="b2" onclick="$('imp').click()">Import</button><button class="bd" onclick="clearAll()">Clear all</button></div>
+<input type="file" id="imp" accept=".xlsx,.xls,.csv" style="display:none">
+</div></div>
+
+<div class="wrap" id="inputPage">
+<div class="top"><div><h1 id="hName">Store POS</h1><p class="sub">Invoice generator · works for any store</p></div><button class="b2" onclick="openSet()">⚙ Settings</button></div>
+
+<h2>Customer & Sale</h2>
+<div class="g">
+<div><label>Customer name</label><input id="customer" placeholder="Walk-in customer"></div>
+<div><label>Customer phone</label><input id="customerTel"></div>
+<div><label>Invoice number</label><input id="invoiceNo"></div>
+<div><label>Date & time</label><div class="row" style="flex-wrap:nowrap"><input id="date" type="datetime-local"><button class="b2" onclick="setNow()">Now</button></div></div>
+<div><label>Payment</label><select id="payment"><option>Cash</option><option>Card</option><option>Transfer</option><option>QR</option></select></div>
+<div><label>Cashier</label><input id="cashier"></div>
+<div class="full"><label>Notes (optional)</label><input id="notes"></div>
+</div>
+
+<h2>Add Product</h2>
+<div class="row">
+<div style="flex:2;min-width:140px"><label>Product</label><input id="itemName"></div>
+<div style="flex:.6;min-width:70px"><label>Qty</label><input id="qty" type="number" min="1" value="1"></div>
+<div style="flex:.8;min-width:90px"><label>Unit price</label><input id="price" type="number" min="0" step="0.01"></div>
+<button class="bok" onclick="addItem()">+ Add</button>
+</div>
+<div class="tw"><table><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th><th></th></tr></thead><tbody id="itemList"></tbody></table></div>
+<div class="tot">
+<div><span>Subtotal</span><span id="tSub">0.00</span></div>
+<div><span>Discount</span><input id="disc" type="number" min="0" step="0.01" value="0" oninput="calc()"></div>
+<div><span>Tax (<span id="tRate">0</span>%)</span><span id="tTax">0.00</span></div>
+<div class="grand"><span>TOTAL</span><span id="tTot">0.00</span></div>
+</div>
+<div class="acts" style="justify-content:flex-end"><button onclick="generate()">Generate Invoice</button></div>
+<div class="bar"><span>Saved invoices: <strong id="cnt">0</strong> · Total: <strong id="sumAll">0.00</strong></span><button class="bok" onclick="openHis()">End Day</button></div>
+</div>
+
+<div class="wrap" id="invoicePage">
+<div class="receipt" id="receipt"></div>
+<div class="acts"><button onclick="window.print()">Print</button><button class="bok" onclick="exportX()">Export .xlsx</button><button class="b2" onclick="back()">New sale</button></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+var $=function(i){return document.getElementById(i)};
+var DEF={name:"My Store",tel:"",addr:"",logo:"",cur:"$",tax:0,prefix:"INV",foot:"Thank you for your purchase!",cashier:"",theme:""};
+function ld(k,d){try{var r=localStorage.getItem(k);if(r){var p=JSON.parse(r);return Array.isArray(d)?(Array.isArray(p)?p:d):Object.assign({},d,p)}}catch(e){}return d}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast("Could not save (storage full or blocked)")}}
+var S=ld("pos_settings",DEF),sales=ld("pos_sales",[]),items=[],last=null,tmpLogo=null;
+var HD=["Date","Time","Invoice","Customer","Phone","Items","Qty","Subtotal","Discount","Tax","Total","Payment","Cashier","Notes"];
+var KEYS=["date","time","invoice","customer","phone","items","qty","subtotal","discount","tax","total","payment","cashier","notes"];
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function m(n){return S.cur+(Number(n)||0).toFixed(2)}
+function n2(n){return (Number(n)||0).toFixed(2)}
+function toast(t){var e=$("toast");e.textContent=t;e.classList.add("show");setTimeout(function(){e.classList.remove("show")},2600)}
+function pad(x){return String(x).padStart(2,"0")}
+function today(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function setNow(){var d=new Date();$("date").value=today()+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function theme(){if(S.theme)document.documentElement.setAttribute("data-theme",S.theme);else document.documentElement.removeAttribute("data-theme")}
+
+function nextInv(){var t=today().replace(/-/g,""),c=sales.filter(function(s){return String(s.invoice).indexOf(t)>-1}).length+1;return S.prefix+"-"+t+"-"+String(c).padStart(3,"0")}
+function applyS(){$("hName").textContent=S.name||"Store POS";document.title=(S.name||"Store")+" · POS";$("tRate").textContent=S.tax;if(!$("cashier").value)$("cashier").value=S.cashier;theme();calc();stats()}
+
+/* settings */
+function openSet(){$("sName").value=S.name;$("sTel").value=S.tel;$("sAddr").value=S.addr;$("sCur").value=S.cur;$("sTax").value=S.tax;$("sPre").value=S.prefix;$("sCash").value=S.cashier;$("sFoot").value=S.foot;$("sTheme").value=S.theme||"";tmpLogo=S.logo;showLogo();$("setOv").classList.add("show")}
+function closeSet(){$("setOv").classList.remove("show")}
+function showLogo(){var p=$("logoPrev");p.style.display=tmpLogo?"block":"none";$("logoClr").style.display=tmpLogo?"inline-block":"none";if(tmpLogo)p.src=tmpLogo}
+function clearLogo(){tmpLogo="";showLogo()}
+$("sLogo").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,240/im.width),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);tmpLogo=c.toDataURL("image/png");showLogo()};im.src=r.result};r.readAsDataURL(f)});
+function saveSet(){S={name:$("sName").value.trim()||"My Store",tel:$("sTel").value.trim(),addr:$("sAddr").value.trim(),logo:tmpLogo||"",cur:$("sCur").value||"$",tax:Math.max(0,Number($("sTax").value)||0),prefix:($("sPre").value.trim()||"INV"),foot:$("sFoot").value.trim(),cashier:$("sCash").value.trim(),theme:$("sTheme").value};sv("pos_settings",S);$("cashier").value=S.cashier;$("invoiceNo").value=nextInv();applyS();showItems();closeSet();toast("Settings saved")}
+
+/* items */
+function addItem(){var n=$("itemName").value.trim(),q=Number($("qty").value),p=Number($("price").value);
+if(!n){$("itemName").focus();return toast("Enter a product name")}
+if(!(q>=1)){return toast("Quantity must be at least 1")}
+if(!(p>=0)||$("price").value===""){$("price").focus();return toast("Enter a valid price")}
+items.push({name:n,qty:q,price:p});$("itemName").value="";$("price").value="";$("qty").value=1;$("itemName").focus();showItems()}
+function delItem(i){items.splice(i,1);showItems()}
+function showItems(){var h="";items.forEach(function(it,i){h+="<tr><td>"+esc(it.name)+"</td><td class='r'>"+it.qty+"</td><td class='r'>"+m(it.price)+"</td><td class='r'>"+m(it.qty*it.price)+"</td><td><button class='bd' onclick='delItem("+i+")'>X</button></td></tr>"});
+$("itemList").innerHTML=h||"<tr><td colspan='5' class='empty'>No items yet. Add a product above.</td></tr>";calc()}
+function totals(){var s=0;items.forEach(function(i){s+=i.qty*i.price});var d=Math.min(Math.max(Number($("disc").value)||0,0),s),tx=(s-d)*S.tax/100;return{sub:s,disc:d,tax:tx,total:s-d+tx}}
+function calc(){var t=totals();$("tSub").textContent=m(t.sub);$("tTax").textContent=m(t.tax);$("tTot").textContent=m(t.total)}
+function stats(){var s=0;sales.forEach(function(x){s+=Number(x.total)||0});$("cnt").textContent=sales.length;$("sumAll").textContent=m(s)}
+
+/* invoice */
+function generate(){if(!items.length)return toast("Add at least one product");
+var t=totals(),dv=$("date").value,d=dv?new Date(dv):new Date();if(isNaN(d))d=new Date();
+var rec={date:d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()),time:pad(d.getHours())+":"+pad(d.getMinutes()),invoice:$("invoiceNo").value.trim()||nextInv(),customer:$("customer").value.trim(),phone:$("customerTel").value.trim(),
+items:items.map(function(i){return i.name+" x"+i.qty}).join("; "),qty:items.reduce(function(a,i){return a+i.qty},0),subtotal:+t.sub.toFixed(2),discount:+t.disc.toFixed(2),tax:+t.tax.toFixed(2),total:+t.total.toFixed(2),payment:$("payment").value,cashier:$("cashier").value.trim(),notes:$("notes").value.trim()};
+sales.push(rec);sv("pos_sales",sales);stats();
+var h="<div class='c'>"+(S.logo?"<img src='"+S.logo+"' alt=''><br>":"")+"<div class='brand'>"+esc(S.name)+"</div>"+(S.addr?"<div>"+esc(S.addr)+"</div>":"")+(S.tel?"<div>Tel: "+esc(S.tel)+"</div>":"")+"</div><hr class='dash'>"
++"<div>Invoice: <b>"+esc(rec.invoice)+"</b></div><div>Date: "+esc(rec.date+" "+rec.time)+"</div>"+(rec.customer?"<div>Customer: "+esc(rec.customer)+"</div>":"")+(rec.phone?"<div>Tel: "+esc(rec.phone)+"</div>":"")+"<hr class='dash'>";
+items.forEach(function(i){h+="<div class='ri'><div class='n'>"+esc(i.name)+"<br>"+i.qty+" x "+m(i.price)+"</div><div>"+m(i.qty*i.price)+"</div></div>"});
+h+="<hr class='dash'><div class='rt'><span>Subtotal</span><span>"+m(t.sub)+"</span></div>"+(t.disc?"<div class='rt'><span>Discount</span><span>-"+m(t.disc)+"</span></div>":"")+(S.tax?"<div class='rt'><span>Tax "+S.tax+"%</span><span>"+m(t.tax)+"</span></div>":"")
++"<div class='rt g2'><span>TOTAL</span><span>"+m(t.total)+"</span></div><div class='c' style='margin-top:6px'>Pay: "+esc(rec.payment)+(rec.cashier?" · Cashier: "+esc(rec.cashier):"")+"</div><hr class='dash'>"
++(rec.notes?"<div class='c'>"+esc(rec.notes)+"</div>":"")+"<div class='c' style='font-weight:700;margin-top:8px'>"+esc(S.foot)+"</div>";
+$("receipt").innerHTML=h;$("inputPage").style.display="none";$("invoicePage").style.display="block";window.scrollTo(0,0)}
+function back(){$("invoicePage").style.display="none";$("inputPage").style.display="block";items=[];$("customer").value="";$("customerTel").value="";$("notes").value="";$("disc").value=0;setNow();$("invoiceNo").value=nextInv();showItems()}
+
+/* end of day */
+function openHis(){$("hisDate").value=today();renderHis();$("hisOv").classList.add("show")}
+function closeHis(){$("hisOv").classList.remove("show")}
+function view(){var d=$("hisDate").value;return d?sales.filter(function(s){return s.date===d}):sales}
+function renderHis(){var v=view(),h="",q=0,t=0,pay={};v.forEach(function(s){q+=Number(s.qty)||0;t+=Number(s.total)||0;pay[s.payment]=(pay[s.payment]||0)+(Number(s.total)||0);
+h+="<tr><td>"+esc(s.date)+"</td><td>"+esc(s.time)+"</td><td>"+esc(s.invoice)+"</td><td>"+esc(s.customer)+"</td><td>"+esc(s.items)+"</td><td class='r'>"+s.qty+"</td><td class='r'>"+m(s.total)+"</td><td>"+esc(s.payment)+"</td><td>"+esc(s.cashier)+"</td></tr>"});
+$("hisBody").innerHTML=h||"<tr><td colspan='9' class='empty'>No sales for this selection.</td></tr>";
+var ps=Object.keys(pay).map(function(k){return k+": "+m(pay[k])}).join(" · ");
+$("hisSum").innerHTML="Invoices: <b>"+v.length+"</b> · Qty: <b>"+q+"</b> · Total: <b>"+m(t)+"</b>"+(ps?"<br>"+esc(ps):"")}
+function rowsOut(v){return v.map(function(s){return KEYS.map(function(k){return s[k]==null?"":s[k]})})}
+function exportX(){if(typeof XLSX==="undefined")return toast("Excel library not loaded. Use CSV.");var v=sales.length?(($("hisOv").classList.contains("show")&&$("hisDate").value)?view():sales):[];if(!v.length)return toast("No sales to export");
+var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([HD].concat(rowsOut(v))),"Sales Log");
+var t=0,q=0,pay={};v.forEach(function(s){t+=+s.total||0;q+=+s.qty||0;pay[s.payment]=(pay[s.payment]||0)+(+s.total||0)});
+var sm=[[S.name+" - End of Day"],["Invoices",v.length],["Total Qty",q],["Total Sales",+t.toFixed(2)],[],["Payment","Amount"]];Object.keys(pay).forEach(function(k){sm.push([k,+pay[k].toFixed(2)])});
+XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sm),"Summary");XLSX.writeFile(wb,"Sales_"+today()+".xlsx");toast("Exported .xlsx")}
+function exportC(){var v=view();if(!v.length)return toast("No sales to export");var csv=[HD].concat(rowsOut(v)).map(function(r){return r.map(function(c){c=String(c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
+var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv"}));a.download="Sales_"+today()+".csv";a.click();toast("Exported CSV")}
+$("imp").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;if(typeof XLSX==="undefined")return toast("Excel library not loaded");
+var r=new FileReader();r.onload=function(){try{var wb=XLSX.read(new Uint8Array(r.result),{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false}),add=0,seen={};
+sales.forEach(function(s){seen[s.invoice+"|"+s.date+"|"+s.time]=1});
+rows.forEach(function(row){var o={},low={};Object.keys(row).forEach(function(k){low[k.trim().toLowerCase()]=row[k]});
+KEYS.forEach(function(k,i){o[k]=low[HD[i].toLowerCase()]!=null?low[HD[i].toLowerCase()]:""});
+if(!o.invoice&&!o.total)return;["qty","subtotal","discount","tax","total"].forEach(function(k){o[k]=Number(String(o[k]).replace(/[^0-9.\-]/g,""))||0});
+var key=o.invoice+"|"+o.date+"|"+o.time;if(seen[key])return;seen[key]=1;sales.push(o);add++});
+sv("pos_sales",sales);stats();renderHis();toast("Imported "+add+" new invoice(s)")}catch(err){toast("Import failed: "+err.message)}};r.readAsArrayBuffer(f);e.target.value=""});
+function clearAll(){if(!confirm("Delete ALL saved sales on this device?"))return;sales=[];sv("pos_sales",sales);stats();renderHis();toast("Sales cleared")}
+
+["itemName","qty","price"].forEach(function(id){$(id).addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();addItem()}})});
+setNow();$("invoiceNo").value=nextInv();applyS();showItems();
+if(!ld("pos_settings",null)||S.name==="My Store"&&!S.tel)setTimeout(openSet,300);
+</script>
+</body>
+</html>
